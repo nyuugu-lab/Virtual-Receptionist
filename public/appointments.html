@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtual Receptionist – Appointments</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    body { background: #f4f6fb; }
+    .sidebar { width: 220px; min-height: 100vh; background: #1a1a2e; color: #eee; }
+    .sidebar a { color: #cdd; text-decoration: none; display: block; padding: 10px 18px; border-radius: 6px; margin: 2px 8px; }
+    .sidebar a:hover, .sidebar a.active { background: #16213e; color: #fff; }
+    .sidebar .brand { font-size: 1.1rem; font-weight: 700; padding: 20px 18px 10px; }
+    .slot-btn { font-size: .8rem; padding: 4px 10px; margin: 2px; }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <nav class="sidebar d-flex flex-column py-2">
+    <div class="brand"><i class="bi bi-reception-4 me-2"></i>Receptionist</div>
+    <hr class="border-secondary my-2 mx-3" />
+    <a href="index.html"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+    <a href="customers.html"><i class="bi bi-people me-2"></i>Customers</a>
+    <a href="appointments.html" class="active"><i class="bi bi-calendar3 me-2"></i>Appointments</a>
+    <a href="checkin.html"><i class="bi bi-person-check me-2"></i>Check In/Out</a>
+    <a href="services.html"><i class="bi bi-scissors me-2"></i>Services</a>
+    <a href="technicians.html"><i class="bi bi-person-badge me-2"></i>Technicians</a>
+    <a href="call-log.html"><i class="bi bi-telephone-inbound me-2"></i>Call Log</a>
+  </nav>
+
+  <main class="p-4 flex-fill">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-semibold mb-0"><i class="bi bi-calendar3 me-2 text-primary"></i>Appointments</h4>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#apptModal">
+        <i class="bi bi-plus-lg me-1"></i>New Appointment
+      </button>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-3 p-3">
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input type="date" id="filterDate" class="form-control" />
+        </div>
+        <div class="col-md-3">
+          <select id="filterTech" class="form-select">
+            <option value="">All Technicians</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select id="filterStatus" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="checked_in">Checked In</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="no_show">No Show</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-outline-secondary w-100" onclick="loadAppointments()">
+            <i class="bi bi-search me-1"></i>Filter
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="apptTable">
+          <thead class="table-light">
+            <tr><th>Date/Time</th><th>Customer</th><th>Service</th><th>Technician</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- New Appointment Modal -->
+<div class="modal fade" id="apptModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Schedule Appointment</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Customer *</label>
+            <input type="text" id="aCustomerSearch" class="form-control" placeholder="Type name or phone…" autocomplete="off" />
+            <div id="aCustomerList" class="list-group mt-1" style="position:absolute;z-index:999;width:300px;max-height:200px;overflow-y:auto;"></div>
+            <input type="hidden" id="aCustomerId" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Technician *</label>
+            <select id="aTech" class="form-select" onchange="loadSlots()">
+              <option value="">Select technician</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Service *</label>
+            <select id="aService" class="form-select" onchange="loadSlots()">
+              <option value="">Select service</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Date *</label>
+            <input type="date" id="aDate" class="form-control" onchange="loadSlots()" />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Available Slots</label>
+            <div id="slotsContainer" class="d-flex flex-wrap gap-1"></div>
+            <input type="hidden" id="aScheduledAt" />
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea id="aNotes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAppointment()">Book Appointment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  let services = [], technicians = [];
+
+  async function init() {
+    [services, technicians] = await Promise.all([
+      fetchJSON('/api/services'),
+      fetchJSON('/api/technicians?active=true')
+    ]);
+
+    const aTech = document.getElementById('aTech');
+    const filterTech = document.getElementById('filterTech');
+    technicians.forEach(t => {
+      aTech.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
+      filterTech.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
+    });
+
+    const aService = document.getElementById('aService');
+    services.forEach(s => {
+      aService.insertAdjacentHTML('beforeend', `<option value="${s.id}" data-duration="${s.duration_minutes}">${s.name} – $${s.price} (${s.duration_minutes}min)</option>`);
+    });
+
+    // Set default date to today
+    document.getElementById('filterDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('aDate').min = new Date().toISOString().slice(0, 10);
+
+    loadAppointments();
+  }
+
+  async function loadAppointments() {
+    const date = document.getElementById('filterDate').value;
+    const techId = document.getElementById('filterTech').value;
+    const status = document.getElementById('filterStatus').value;
+
+    let url = '/api/appointments?';
+    if (date) url += `date=${date}&`;
+    if (techId) url += `technician_id=${techId}&`;
+    if (status) url += `status=${status}&`;
+
+    const appts = await fetchJSON(url);
+    const tbody = document.querySelector('#apptTable tbody');
+    tbody.innerHTML = appts.length
+      ? appts.map(a => `<tr>
+          <td>${formatDateTime(a.scheduled_at)}</td>
+          <td>${a.customer_name}<br/><small class="text-muted">${a.customer_phone}</small></td>
+          <td>${a.service_name}<br/><small class="text-muted">$${a.price}</small></td>
+          <td>${a.technician_name}</td>
+          <td><span class="badge ${statusBadge(a.status)}">${a.status}</span></td>
+          <td>
+            ${a.status === 'scheduled' ? `
+              <button class="btn btn-sm btn-success me-1" title="Check In" onclick="updateStatus(${a.id},'checked_in')">
+                <i class="bi bi-person-check"></i>
+              </button>
+              <button class="btn btn-sm btn-danger me-1" title="Cancel" onclick="updateStatus(${a.id},'cancelled')">
+                <i class="bi bi-x-circle"></i>
+              </button>
+              <button class="btn btn-sm btn-warning" title="No Show" onclick="updateStatus(${a.id},'no_show')">
+                <i class="bi bi-person-x"></i>
+              </button>` : ''}
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="6" class="text-center text-muted py-3">No appointments found</td></tr>';
+  }
+
+  function statusBadge(s) {
+    return { scheduled: 'bg-primary', checked_in: 'bg-success', completed: 'bg-secondary', cancelled: 'bg-danger', no_show: 'bg-warning text-dark' }[s] || 'bg-secondary';
+  }
+
+  async function updateStatus(id, status) {
+    if (!confirm(`Mark appointment as ${status}?`)) return;
+    try {
+      await fetchJSON(`/api/appointments/${id}`, { method: 'PUT', body: JSON.stringify({ status }) });
+      showToast(`Status updated to ${status}`);
+      loadAppointments();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
+
+  // Customer search autocomplete
+  let searchTimeout;
+  document.getElementById('aCustomerSearch').addEventListener('input', function () {
+    clearTimeout(searchTimeout);
+    const q = this.value.trim();
+    if (q.length < 2) { document.getElementById('aCustomerList').innerHTML = ''; return; }
+    searchTimeout = setTimeout(async () => {
+      const results = await fetchJSON(`/api/customers?q=${encodeURIComponent(q)}`);
+      const list = document.getElementById('aCustomerList');
+      list.innerHTML = '';
+      results.slice(0, 8).forEach(c => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'list-group-item list-group-item-action';
+        a.innerHTML = `${c.name} <small class="text-muted">${c.phone}</small>`;
+        a.addEventListener('click', e => { e.preventDefault(); selectCustomer(c.id, c.name); });
+        list.appendChild(a);
+      });
+    }, 300);
+  });
+
+  function selectCustomer(id, name) {
+    document.getElementById('aCustomerId').value = id;
+    document.getElementById('aCustomerSearch').value = name;
+    document.getElementById('aCustomerList').innerHTML = '';
+  }
+
+  async function loadSlots() {
+    const techId = document.getElementById('aTech').value;
+    const date = document.getElementById('aDate').value;
+    const serviceEl = document.getElementById('aService');
+    const selectedOption = serviceEl.options[serviceEl.selectedIndex];
+    const duration = selectedOption ? selectedOption.dataset.duration : 30;
+
+    document.getElementById('aScheduledAt').value = '';
+    const container = document.getElementById('slotsContainer');
+
+    if (!techId || !date) { container.innerHTML = '<small class="text-muted">Select technician and date</small>'; return; }
+
+    try {
+      const data = await fetchJSON(`/api/appointments/availability?technician_id=${techId}&date=${date}&duration=${duration || 30}`);
+      container.innerHTML = data.available_slots.length
+        ? data.available_slots.map(s =>
+            `<button type="button" class="btn btn-outline-primary slot-btn" onclick="selectSlot('${s.iso}', this)">${s.start}</button>`
+          ).join('')
+        : '<small class="text-muted">No available slots on this date</small>';
+    } catch (e) {
+      container.innerHTML = '<small class="text-danger">Could not load slots</small>';
+    }
+  }
+
+  function selectSlot(iso, btn) {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('active', 'btn-primary'));
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-outline-primary');
+    document.getElementById('aScheduledAt').value = iso;
+  }
+
+  async function saveAppointment() {
+    const body = {
+      customer_id: document.getElementById('aCustomerId').value,
+      technician_id: document.getElementById('aTech').value,
+      service_id: document.getElementById('aService').value,
+      scheduled_at: document.getElementById('aScheduledAt').value,
+      notes: document.getElementById('aNotes').value
+    };
+    if (!body.customer_id || !body.technician_id || !body.service_id || !body.scheduled_at) {
+      showToast('Please fill all required fields and select a time slot', 'warning');
+      return;
+    }
+    try {
+      await fetchJSON('/api/appointments', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Appointment booked!');
+      bootstrap.Modal.getInstance(document.getElementById('apptModal')).hide();
+      loadAppointments();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
+
+  init();
+</script>
+</body>
+</html>
