@@ -1,0 +1,10 @@
+# Dependencies
+node_modules/
+
+# Client data - PRIVATE, never commit
+data/visitors.json
+data/clients.json
+
+# Dev tools
+public/icons/icon.svg
+push-payload.json
