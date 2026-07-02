@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Visitor Check-In</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="card">
+    <h1>👋 Welcome!</h1>
+    <p>Please sign in below.</p>
+
+    <div id="msg"></div>
+
+    <form action="/kiosk/checkin" method="POST">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" placeholder="Jane Smith" required autocomplete="off" />
+
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" name="phone" placeholder="555-123-4567" required autocomplete="off" />
+
+      <button type="submit">Check In</button>
+    </form>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const msg = document.getElementById('msg');
+    if (params.get('success')) {
+      msg.className = 'alert success';
+      msg.textContent = '✅ You are checked in! Please have a seat.';
+    } else if (params.get('error')) {
+      msg.className = 'alert error';
+      msg.textContent = '⚠️ Please enter your name and phone number.';
+    }
+  </script>
+</body>
+</html>

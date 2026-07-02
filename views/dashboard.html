@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Receptionist Dashboard</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <h1>🖥️ Receptionist Dashboard</h1>
+      <button onclick="loadVisitors()">🔄 Refresh</button>
+    </div>
+
+    <table id="visitor-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Checked In</th>
+          <th>Checked Out</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="visitor-body">
+        <tr><td colspan="6">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    function formatTime(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    async function checkout(id) {
+      await fetch(`/checkout/${id}`, { method: 'POST' });
+      loadVisitors();
+    }
+
+    async function loadVisitors() {
+      const res = await fetch('/api/visitors');
+      const visitors = await res.json();
+      const tbody = document.getElementById('visitor-body');
+
+      if (!visitors.length) {
+        tbody.innerHTML = '<tr><td colspan="6">No visitors yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = visitors.map(v => `
+        <tr class="${v.status === 'checked-out' ? 'checked-out' : 'waiting'}">
+          <td>${v.name}</td>
+          <td>${v.phone}</td>
+          <td>${formatTime(v.checkedInAt)}</td>
+          <td>${formatTime(v.checkedOutAt)}</td>
+          <td><span class="badge ${v.status}">${v.status}</span></td>
+          <td>
+            ${v.status === 'waiting'
+              ? `<button onclick="checkout('${v.id}')">Check Out</button>`
+              : '—'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    loadVisitors();
+    setInterval(loadVisitors, 10000);
+  </script>
+</body>
+</html>
