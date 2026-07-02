@@ -6,57 +6,16 @@
   <title>Select Services</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
-<body>
+<body class="kiosk-body">
   <div class="card services-card">
-    <h1>💇 Select Services</h1>
+    <h1>💅 Select Services</h1>
     <p>Choose all that apply, then tap <strong>Confirm</strong>.</p>
 
     <form action="/kiosk/services" method="POST">
       <input type="hidden" name="id" id="visitor-id" value="" />
-
-      <div class="service-grid">
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Haircut" />
-          <span>✂️ Haircut</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Hair Color" />
-          <span>🎨 Hair Color</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Highlights" />
-          <span>✨ Highlights</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Blowout" />
-          <span>💨 Blowout</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Hair Treatment" />
-          <span>🧴 Hair Treatment</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Manicure" />
-          <span>💅 Manicure</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Pedicure" />
-          <span>🦶 Pedicure</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Facial" />
-          <span>🌸 Facial</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Waxing" />
-          <span>🕯️ Waxing</span>
-        </label>
-        <label class="service-item">
-          <input type="checkbox" name="services" value="Makeup" />
-          <span>💄 Makeup</span>
-        </label>
+      <div class="service-grid" id="service-grid">
+        <p>Loading services...</p>
       </div>
-
       <button type="submit" id="confirm-btn">Confirm Check-In</button>
     </form>
   </div>
@@ -65,6 +24,22 @@
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     if (id) document.getElementById('visitor-id').value = id;
+
+    fetch('/api/services')
+      .then(r => r.json())
+      .then(services => {
+        const grid = document.getElementById('service-grid');
+        if (!services.length) {
+          grid.innerHTML = '<p>No services available.</p>';
+          return;
+        }
+        grid.innerHTML = services.map(s => `
+          <label class="service-item">
+            <input type="checkbox" name="services" value="${s.name}" />
+            <span>${s.emoji} ${s.name}</span>
+          </label>
+        `).join('');
+      });
   </script>
 </body>
 </html>

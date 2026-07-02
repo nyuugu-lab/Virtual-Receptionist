@@ -12,6 +12,7 @@
     <div class="nav-links">
       <a href="/dashboard" class="active">🖥️ Dashboard</a>
       <a href="/clients">👥 Clients</a>
+      <a href="/admin/services">⚙️ Services</a>
     </div>
   </nav>
 
@@ -24,14 +25,8 @@
     <table id="visitor-table">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Phone</th>
-          <th>Services</th>
-          <th>Stylist</th>
-          <th>Checked In</th>
-          <th>Checked Out</th>
-          <th>Status</th>
-          <th>Action</th>
+          <th>Name</th><th>Phone</th><th>Services</th><th>Stylist</th>
+          <th>Checked In</th><th>Checked Out</th><th>Status</th><th>Action</th>
         </tr>
       </thead>
       <tbody id="visitor-body">
@@ -45,40 +40,29 @@
       if (!iso) return '—';
       return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-
     async function checkout(id) {
       await fetch(`/checkout/${id}`, { method: 'POST' });
       loadVisitors();
     }
-
     async function loadVisitors() {
       const res = await fetch('/api/visitors');
       const visitors = await res.json();
       const tbody = document.getElementById('visitor-body');
-
       if (!visitors.length) {
         tbody.innerHTML = '<tr><td colspan="8">No visitors yet.</td></tr>';
         return;
       }
-
       tbody.innerHTML = visitors.map(v => `
         <tr class="${v.status === 'checked-out' ? 'checked-out' : 'waiting'}">
-          <td>${v.name}</td>
-          <td>${v.phone}</td>
+          <td>${v.name}</td><td>${v.phone}</td>
           <td>${v.services && v.services.length ? v.services.join(', ') : '<em>—</em>'}</td>
           <td>${v.stylist || '<em>—</em>'}</td>
-          <td>${formatTime(v.checkedInAt)}</td>
-          <td>${formatTime(v.checkedOutAt)}</td>
+          <td>${formatTime(v.checkedInAt)}</td><td>${formatTime(v.checkedOutAt)}</td>
           <td><span class="badge ${v.status}">${v.status}</span></td>
-          <td>
-            ${v.status === 'waiting'
-              ? `<button onclick="checkout('${v.id}')">Check Out</button>`
-              : '—'}
-          </td>
+          <td>${v.status === 'waiting' ? `<button onclick="checkout('${v.id}')">Check Out</button>` : '—'}</td>
         </tr>
       `).join('');
     }
-
     loadVisitors();
     setInterval(loadVisitors, 3000);
   </script>

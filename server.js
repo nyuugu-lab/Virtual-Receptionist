@@ -6,8 +6,9 @@ const PDFDocument = require('pdfkit');
 
 const app = express();
 const PORT = 3000;
-const DATA_FILE    = path.join(__dirname, 'data', 'visitors.json');
-const CLIENTS_FILE = path.join(__dirname, 'data', 'clients.json');
+const DATA_FILE     = path.join(__dirname, 'data', 'visitors.json');
+const CLIENTS_FILE  = path.join(__dirname, 'data', 'clients.json');
+const SERVICES_FILE = path.join(__dirname, 'data', 'services.json');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -17,19 +18,19 @@ function readVisitors() {
   const raw = fs.readFileSync(DATA_FILE, 'utf8');
   return JSON.parse(raw || '[]');
 }
-
-function writeVisitors(visitors) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(visitors, null, 2));
-}
+function writeVisitors(v) { fs.writeFileSync(DATA_FILE, JSON.stringify(v, null, 2)); }
 
 function readClients() {
   const raw = fs.readFileSync(CLIENTS_FILE, 'utf8');
   return JSON.parse(raw || '{}');
 }
+function writeClients(c) { fs.writeFileSync(CLIENTS_FILE, JSON.stringify(c, null, 2)); }
 
-function writeClients(clients) {
-  fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
+function readServices() {
+  const raw = fs.readFileSync(SERVICES_FILE, 'utf8');
+  return JSON.parse(raw || '[]');
 }
+function writeServices(s) { fs.writeFileSync(SERVICES_FILE, JSON.stringify(s, null, 2)); }
 
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
@@ -37,36 +38,25 @@ function buildClientSummary() {
   const visitors = readVisitors();
   const clientStore = readClients();
   const map = {};
-
   for (const v of visitors) {
     if (!v.phone || v.status === 'pending-services' || v.status === 'pending-stylist') continue;
     const phone = v.phone;
-    if (!map[phone]) {
-      map[phone] = { phone, name: v.name, visits: [], stylists: new Set(), days: new Set() };
-    }
+    if (!map[phone]) map[phone] = { phone, name: v.name, visits: [], stylists: new Set(), days: new Set() };
     map[phone].visits.push(v);
     if (v.stylist) map[phone].stylists.add(v.stylist);
     if (v.checkedInAt) map[phone].days.add(DAYS[new Date(v.checkedInAt).getDay()]);
   }
-
   const now = Date.now();
   const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-
   return Object.values(map).map(c => {
     const extra = clientStore[c.phone] || {};
     const sorted = c.visits.sort((a, b) => new Date(b.checkedInAt) - new Date(a.checkedInAt));
     const lastVisit = sorted[0]?.checkedInAt || null;
     const inactive = lastVisit && (now - new Date(lastVisit).getTime()) > YEAR_MS;
     return {
-      phone: c.phone,
-      name: extra.name || c.name,
-      totalVisits: c.visits.length,
-      lastVisit,
-      days: [...c.days],
-      stylists: [...c.stylists],
-      comments: extra.comments || [],
-      archived: extra.archived || false,
-      inactive
+      phone: c.phone, name: extra.name || c.name, totalVisits: c.visits.length,
+      lastVisit, days: [...c.days], stylists: [...c.stylists],
+      comments: extra.comments || [], archived: extra.archived || false, inactive
     };
   }).filter(c => !c.archived);
 }
@@ -77,10 +67,7 @@ app.post('/kiosk/checkin', (req, res) => {
   const { name, phone } = req.body;
   if (!name || !phone) return res.redirect('/kiosk?error=missing');
   const visitors = readVisitors();
-  const visitor = {
-    id: Date.now().toString(), name: name.trim(), phone: phone.trim(),
-    checkedInAt: new Date().toISOString(), checkedOutAt: null, services: [], status: 'pending-services'
-  };
+  const visitor = { id: Date.now().toString(), name: name.trim(), phone: phone.trim(), checkedInAt: new Date().toISOString(), checkedOutAt: null, services: [], status: 'pending-services' };
   visitors.push(visitor);
   writeVisitors(visitors);
   res.redirect(`/kiosk/services?id=${visitor.id}`);
@@ -113,7 +100,6 @@ app.post('/kiosk/stylist', (req, res) => {
 });
 
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'views', 'dashboard.html')));
-
 app.get('/api/visitors', (req, res) => res.json(readVisitors()));
 
 app.post('/checkout/:id', (req, res) => {
@@ -127,7 +113,6 @@ app.post('/checkout/:id', (req, res) => {
 });
 
 app.get('/clients', (req, res) => res.sendFile(path.join(__dirname, 'views', 'clients.html')));
-
 app.get('/api/clients', (req, res) => res.json(buildClientSummary()));
 
 app.get('/api/clients/:phone', (req, res) => {
@@ -169,10 +154,8 @@ app.post('/api/clients/:phone/comment', (req, res) => {
 app.delete('/api/clients/:phone/comment/:id', (req, res) => {
   const { phone, id } = req.params;
   const clients = readClients();
-  if (clients[phone]) {
-    clients[phone].comments = (clients[phone].comments || []).filter(c => c.id !== id);
-    writeClients(clients);
-  }
+  if (clients[phone]) clients[phone].comments = (clients[phone].comments || []).filter(c => c.id !== id);
+  writeClients(clients);
   res.json({ success: true });
 });
 
@@ -185,115 +168,112 @@ app.delete('/api/clients/:phone', (req, res) => {
   res.json({ success: true });
 });
 
-// --- /export/excel --- Export clients to Excel
+// --- /admin/services --- Service management
+app.get('/admin/services', (req, res) => res.sendFile(path.join(__dirname, 'views', 'admin-services.html')));
+app.get('/api/services', (req, res) => res.json(readServices()));
+
+app.post('/api/services', (req, res) => {
+  const { name, emoji } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name required' });
+  const services = readServices();
+  const service = { id: Date.now().toString(), name: name.trim(), emoji: emoji ? emoji.trim() : '💅' };
+  services.push(service);
+  writeServices(services);
+  res.json({ success: true, service });
+});
+
+app.delete('/api/services/:id', (req, res) => {
+  const services = readServices().filter(s => s.id !== req.params.id);
+  writeServices(services);
+  res.json({ success: true });
+});
+
+// --- /export/excel ---
 app.get('/export/excel', async (req, res) => {
   const clients = buildClientSummary();
   const visitors = readVisitors();
-
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'Virtual Receptionist';
+  workbook.creator = 'Inspire Nails Bar';
   workbook.created = new Date();
-
   const sheet = workbook.addWorksheet('Clients', { views: [{ state: 'frozen', ySplit: 1 }] });
-
   sheet.columns = [
-    { header: 'Name',                 key: 'name',        width: 22 },
-    { header: 'Phone',                key: 'phone',       width: 16 },
-    { header: 'Total Visits',         key: 'totalVisits', width: 14 },
-    { header: 'Last Visit',           key: 'lastVisit',   width: 18 },
-    { header: 'Days They Visit',      key: 'days',        width: 28 },
-    { header: 'Preferred Technician', key: 'stylists',    width: 28 },
-    { header: 'Services',             key: 'services',    width: 36 },
-    { header: 'Status',               key: 'status',      width: 12 },
+    { header: 'Name', key: 'name', width: 22 },
+    { header: 'Phone', key: 'phone', width: 16 },
+    { header: 'Total Visits', key: 'totalVisits', width: 14 },
+    { header: 'Last Visit', key: 'lastVisit', width: 18 },
+    { header: 'Days They Visit', key: 'days', width: 28 },
+    { header: 'Preferred Technician', key: 'stylists', width: 28 },
+    { header: 'Services', key: 'services', width: 36 },
+    { header: 'Status', key: 'status', width: 12 },
   ];
-
   sheet.getRow(1).eachCell(cell => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2D3748' } };
     cell.alignment = { vertical: 'middle', horizontal: 'center' };
   });
   sheet.getRow(1).height = 28;
-
   const serviceMap = {};
   for (const v of visitors) {
     if (!v.phone || !v.services || !v.services.length) continue;
     if (!serviceMap[v.phone]) serviceMap[v.phone] = new Set();
     v.services.forEach(s => serviceMap[v.phone].add(s));
   }
-
   for (const c of clients) {
     const row = sheet.addRow({
-      name:        c.name,
-      phone:       c.phone,
-      totalVisits: c.totalVisits,
-      lastVisit:   c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—',
-      days:        c.days.join(', ') || '—',
-      stylists:    c.stylists.join(', ') || '—',
-      services:    serviceMap[c.phone] ? [...serviceMap[c.phone]].join(', ') : '—',
-      status:      c.inactive ? 'Inactive' : 'Active',
+      name: c.name, phone: c.phone, totalVisits: c.totalVisits,
+      lastVisit: c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—',
+      days: c.days.join(', ') || '—', stylists: c.stylists.join(', ') || '—',
+      services: serviceMap[c.phone] ? [...serviceMap[c.phone]].join(', ') : '—',
+      status: c.inactive ? 'Inactive' : 'Active',
     });
     row.getCell('status').font = { color: { argb: c.inactive ? 'FF9B2C2C' : 'FF276749' }, bold: true };
     row.alignment = { vertical: 'middle', wrapText: true };
   }
-
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename="clients.xlsx"');
   await workbook.xlsx.write(res);
   res.end();
 });
 
-// --- /export/pdf --- Export clients to PDF
+// --- /export/pdf ---
 app.get('/export/pdf', (req, res) => {
   const clients = buildClientSummary();
   const visitors = readVisitors();
-
   const serviceMap = {};
   for (const v of visitors) {
     if (!v.phone || !v.services || !v.services.length) continue;
     if (!serviceMap[v.phone]) serviceMap[v.phone] = new Set();
     v.services.forEach(s => serviceMap[v.phone].add(s));
   }
-
   const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename="clients.pdf"');
   doc.pipe(res);
-
-  doc.fontSize(20).fillColor('#2d3748').text('Virtual Receptionist — Client Report', { align: 'center' });
+  doc.fontSize(20).fillColor('#2d3748').text('Inspire Nails Bar — Client Report', { align: 'center' });
   doc.fontSize(10).fillColor('#718096').text(`Generated: ${new Date().toLocaleString()}`, { align: 'center' });
   doc.moveDown(1.5);
-
   for (const c of clients) {
     doc.fontSize(13).fillColor(c.inactive ? '#9b2c2c' : '#2d3748').text(c.name, { continued: true });
     doc.fontSize(10).fillColor('#718096').text(`  •  ${c.inactive ? 'Inactive' : 'Active'}  •  ${c.totalVisits} visits`);
     doc.moveDown(0.3);
-
     const services = serviceMap[c.phone] ? [...serviceMap[c.phone]].join(', ') : '—';
-    const rows = [
-      ['Phone',                c.phone],
-      ['Preferred Technician', c.stylists.join(', ') || '—'],
-      ['Services',             services],
-      ['Days They Visit',      c.days.join(', ') || '—'],
-      ['Last Visit',           c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—'],
-    ];
-
+    const rows = [['Phone', c.phone], ['Preferred Technician', c.stylists.join(', ') || '—'], ['Services', services], ['Days They Visit', c.days.join(', ') || '—'], ['Last Visit', c.lastVisit ? new Date(c.lastVisit).toLocaleDateString() : '—']];
     for (const [label, value] of rows) {
       doc.fontSize(9).fillColor('#4a5568').text(`${label}: `, { continued: true });
       doc.fillColor('#1a202c').text(value);
     }
-
     doc.moveDown(0.5);
     doc.moveTo(40, doc.y).lineTo(570, doc.y).strokeColor('#e2e8f0').stroke();
     doc.moveDown(0.5);
     if (doc.y > 680) doc.addPage();
   }
-
   doc.end();
 });
 
 app.listen(PORT, () => {
-  console.log(`Virtual Receptionist running at http://localhost:${PORT}`);
+  console.log(`Inspire Nails Bar running at http://localhost:${PORT}`);
   console.log(`  Kiosk:     http://localhost:${PORT}/kiosk`);
   console.log(`  Dashboard: http://localhost:${PORT}/dashboard`);
   console.log(`  Clients:   http://localhost:${PORT}/clients`);
+  console.log(`  Services:  http://localhost:${PORT}/admin/services`);
 });

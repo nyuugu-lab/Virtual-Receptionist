@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inspire Nails Bar — Manage Services</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-brand">💅 Inspire Nails Bar</div>
+    <div class="nav-links">
+      <a href="/dashboard">🖥️ Dashboard</a>
+      <a href="/clients">👥 Clients</a>
+      <a href="/admin/services" class="active">⚙️ Services</a>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <h1>⚙️ Manage Services</h1>
+    </div>
+
+    <div class="admin-card">
+      <h2>➕ Add New Service</h2>
+      <div class="add-service-form">
+        <input type="text" id="new-emoji" placeholder="Emoji (e.g. 💅)" maxlength="4" style="width:80px" />
+        <input type="text" id="new-name" placeholder="Service name (e.g. Gel Nails)" />
+        <button onclick="addService()">Add Service</button>
+      </div>
+      <p id="add-msg" class="edit-msg"></p>
+    </div>
+
+    <div class="admin-card" style="margin-top: 20px;">
+      <h2>📋 Current Services</h2>
+      <p class="admin-hint">These are the services clients see on the kiosk check-in screen.</p>
+      <div id="services-list"></div>
+    </div>
+  </div>
+
+  <script>
+    async function loadServices() {
+      const res = await fetch('/api/services');
+      const services = await res.json();
+      const el = document.getElementById('services-list');
+      if (!services.length) {
+        el.innerHTML = '<p class="no-data">No services yet. Add one above.</p>';
+        return;
+      }
+      el.innerHTML = `
+        <table>
+          <thead><tr><th>Emoji</th><th>Service Name</th><th>Action</th></tr></thead>
+          <tbody>
+            ${services.map(s => `
+              <tr>
+                <td style="font-size:1.4rem; text-align:center">${s.emoji}</td>
+                <td>${s.name}</td>
+                <td><button class="delete-btn" onclick="deleteService('${s.id}', '${s.name}')">🗑️ Delete</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function addService() {
+      const name  = document.getElementById('new-name').value.trim();
+      const emoji = document.getElementById('new-emoji').value.trim() || '💅';
+      if (!name) { showMsg('Please enter a service name.', 'error'); return; }
+      const res = await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, emoji })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('new-name').value = '';
+        document.getElementById('new-emoji').value = '';
+        showMsg(`✅ "${name}" added!`, 'success');
+        loadServices();
+      }
+    }
+
+    async function deleteService(id, name) {
+      if (!confirm(`Delete "${name}"? Clients won't be able to select it anymore.`)) return;
+      await fetch(`/api/services/${id}`, { method: 'DELETE' });
+      loadServices();
+    }
+
+    function showMsg(text, type) {
+      const msg = document.getElementById('add-msg');
+      msg.textContent = text;
+      msg.style.color = type === 'error' ? '#e53e3e' : '#276749';
+      setTimeout(() => msg.textContent = '', 3000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('new-name').addEventListener('keydown', e => {
+        if (e.key === 'Enter') addService();
+      });
+    });
+
+    loadServices();
+  </script>
+</body>
+</html>

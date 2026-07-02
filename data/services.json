@@ -1,0 +1,12 @@
+[
+  { "id": "1", "name": "Haircut", "emoji": "✂️" },
+  { "id": "2", "name": "Hair Color", "emoji": "🎨" },
+  { "id": "3", "name": "Highlights", "emoji": "✨" },
+  { "id": "4", "name": "Blowout", "emoji": "💨" },
+  { "id": "5", "name": "Hair Treatment", "emoji": "🧴" },
+  { "id": "6", "name": "Manicure", "emoji": "💅" },
+  { "id": "7", "name": "Pedicure", "emoji": "🦶" },
+  { "id": "8", "name": "Facial", "emoji": "🌸" },
+  { "id": "9", "name": "Waxing", "emoji": "🕯️" },
+  { "id": "10", "name": "Makeup", "emoji": "💄" }
+]
