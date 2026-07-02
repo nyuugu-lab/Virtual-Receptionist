@@ -4,7 +4,8 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-const DATA_FILE = path.join(__dirname, 'data', 'visitors.json');
+const DATA_FILE    = path.join(__dirname, 'data', 'visitors.json');
+const CLIENTS_FILE = path.join(__dirname, 'data', 'clients.json');
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -18,6 +19,62 @@ function readVisitors() {
 
 function writeVisitors(visitors) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(visitors, null, 2));
+}
+
+function readClients() {
+  const raw = fs.readFileSync(CLIENTS_FILE, 'utf8');
+  return JSON.parse(raw || '{}');
+}
+
+function writeClients(clients) {
+  fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
+}
+
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Build a merged client summary from visitors + clients store
+function buildClientSummary() {
+  const visitors = readVisitors();
+  const clientStore = readClients();
+  const map = {};
+
+  for (const v of visitors) {
+    if (!v.phone || v.status === 'pending-services' || v.status === 'pending-stylist') continue;
+    const phone = v.phone;
+    if (!map[phone]) {
+      map[phone] = {
+        phone,
+        name: v.name,
+        visits: [],
+        stylists: new Set(),
+        days: new Set()
+      };
+    }
+    map[phone].visits.push(v);
+    if (v.stylist) map[phone].stylists.add(v.stylist);
+    if (v.checkedInAt) map[phone].days.add(DAYS[new Date(v.checkedInAt).getDay()]);
+  }
+
+  const now = Date.now();
+  const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+  return Object.values(map).map(c => {
+    const extra = clientStore[c.phone] || {};
+    const sorted = c.visits.sort((a, b) => new Date(b.checkedInAt) - new Date(a.checkedInAt));
+    const lastVisit = sorted[0]?.checkedInAt || null;
+    const inactive = lastVisit && (now - new Date(lastVisit).getTime()) > YEAR_MS;
+    return {
+      phone: c.phone,
+      name: extra.name || c.name,
+      totalVisits: c.visits.length,
+      lastVisit,
+      days: [...c.days],
+      stylists: [...c.stylists],
+      comments: extra.comments || [],
+      archived: extra.archived || false,
+      inactive
+    };
+  }).filter(c => !c.archived);
 }
 
 // --- /kiosk --- iPad visitor check-in page
@@ -37,7 +94,6 @@ app.post('/kiosk/checkin', (req, res) => {
     checkedInAt: new Date().toISOString(),
     checkedOutAt: null,
     services: [],
-    stylist: null,
     status: 'pending-services'
   };
   visitors.push(visitor);
@@ -105,8 +161,84 @@ app.post('/checkout/:id', (req, res) => {
   res.json({ success: true, visitor });
 });
 
+// --- /clients --- Client list page
+app.get('/clients', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'clients.html'));
+});
+
+// API: get all clients (grouped from visits)
+app.get('/api/clients', (req, res) => {
+  res.json(buildClientSummary());
+});
+
+// API: get single client profile
+app.get('/api/clients/:phone', (req, res) => {
+  const phone = req.params.phone;
+  const all = buildClientSummary();
+  const client = all.find(c => c.phone === phone);
+  if (!client) return res.status(404).json({ error: 'Client not found' });
+
+  const visitors = readVisitors();
+  client.visitHistory = visitors
+    .filter(v => v.phone === phone && v.status !== 'pending-services' && v.status !== 'pending-stylist')
+    .sort((a, b) => new Date(b.checkedInAt) - new Date(a.checkedInAt));
+
+  res.json(client);
+});
+
+// --- /clients/:phone --- Client profile page
+app.get('/clients/:phone', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'client-profile.html'));
+});
+
+// API: edit client name
+app.post('/api/clients/:phone/edit', (req, res) => {
+  const phone = req.params.phone;
+  const { name } = req.body;
+  const clients = readClients();
+  if (!clients[phone]) clients[phone] = { phone, comments: [], archived: false };
+  if (name) clients[phone].name = name.trim();
+  writeClients(clients);
+  res.json({ success: true });
+});
+
+// API: add a comment
+app.post('/api/clients/:phone/comment', (req, res) => {
+  const phone = req.params.phone;
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Empty comment' });
+  const clients = readClients();
+  if (!clients[phone]) clients[phone] = { phone, comments: [], archived: false };
+  const comment = { id: Date.now().toString(), text: text.trim(), createdAt: new Date().toISOString() };
+  clients[phone].comments.unshift(comment);
+  writeClients(clients);
+  res.json({ success: true, comment });
+});
+
+// API: delete a comment
+app.delete('/api/clients/:phone/comment/:id', (req, res) => {
+  const { phone, id } = req.params;
+  const clients = readClients();
+  if (clients[phone]) {
+    clients[phone].comments = (clients[phone].comments || []).filter(c => c.id !== id);
+    writeClients(clients);
+  }
+  res.json({ success: true });
+});
+
+// API: archive a client
+app.delete('/api/clients/:phone', (req, res) => {
+  const phone = req.params.phone;
+  const clients = readClients();
+  if (!clients[phone]) clients[phone] = { phone, comments: [], archived: false };
+  clients[phone].archived = true;
+  writeClients(clients);
+  res.json({ success: true });
+});
+
 app.listen(PORT, () => {
   console.log(`Virtual Receptionist running at http://localhost:${PORT}`);
   console.log(`  Kiosk:     http://localhost:${PORT}/kiosk`);
   console.log(`  Dashboard: http://localhost:${PORT}/dashboard`);
+  console.log(`  Clients:   http://localhost:${PORT}/clients`);
 });
