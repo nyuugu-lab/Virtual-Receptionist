@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtual Receptionist – Customers</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    body { background: #f4f6fb; }
+    .sidebar { width: 220px; min-height: 100vh; background: #1a1a2e; color: #eee; }
+    .sidebar a { color: #cdd; text-decoration: none; display: block; padding: 10px 18px; border-radius: 6px; margin: 2px 8px; }
+    .sidebar a:hover, .sidebar a.active { background: #16213e; color: #fff; }
+    .sidebar .brand { font-size: 1.1rem; font-weight: 700; padding: 20px 18px 10px; }
+    .flagged-row { background: #fff3cd !important; }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <nav class="sidebar d-flex flex-column py-2">
+    <div class="brand"><i class="bi bi-reception-4 me-2"></i>Receptionist</div>
+    <hr class="border-secondary my-2 mx-3" />
+    <a href="index.html"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+    <a href="customers.html" class="active"><i class="bi bi-people me-2"></i>Customers</a>
+    <a href="appointments.html"><i class="bi bi-calendar3 me-2"></i>Appointments</a>
+    <a href="checkin.html"><i class="bi bi-person-check me-2"></i>Check In/Out</a>
+    <a href="services.html"><i class="bi bi-scissors me-2"></i>Services</a>
+    <a href="technicians.html"><i class="bi bi-person-badge me-2"></i>Technicians</a>
+    <a href="call-log.html"><i class="bi bi-telephone-inbound me-2"></i>Call Log</a>
+  </nav>
+
+  <main class="p-4 flex-fill">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-semibold mb-0"><i class="bi bi-people me-2 text-primary"></i>Customers</h4>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#customerModal" onclick="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>New Customer
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="card border-0 shadow-sm mb-3 p-3">
+      <div class="row g-2">
+        <div class="col-md-5">
+          <input type="text" id="searchQ" class="form-control" placeholder="Search by name or phone…" />
+        </div>
+        <div class="col-md-4">
+          <select id="searchTech" class="form-select">
+            <option value="">All Technicians</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <select id="searchFlagged" class="form-select">
+            <option value="">All</option>
+            <option value="true">Flagged Only</option>
+            <option value="false">Not Flagged</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-outline-secondary w-100" onclick="loadCustomers()"><i class="bi bi-search"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0" id="customersTable">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Preferred Tech</th>
+              <th>Points</th>
+              <th>Last Visit</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Customer Add/Edit Modal -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalTitle">Add Customer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editId" />
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Full Name *</label>
+            <input type="text" id="fName" class="form-control" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone *</label>
+            <input type="tel" id="fPhone" class="form-control" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" id="fEmail" class="form-control" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Preferred Technician</label>
+            <select id="fTech" class="form-select">
+              <option value="">No preference</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea id="fNotes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detailName">Customer Detail</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card border-0 bg-light">
+              <div class="card-body" id="detailInfo"></div>
+            </div>
+          </div>
+          <div class="col-md-8">
+            <ul class="nav nav-tabs mb-3" id="detailTabs">
+              <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tabVisits">Visits</a></li>
+              <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabPromos">Promotions</a></li>
+              <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tabStats">Stats</a></li>
+            </ul>
+            <div class="tab-content">
+              <div class="tab-pane active" id="tabVisits">
+                <table class="table table-sm">
+                  <thead><tr><th>Date</th><th>Service</th><th>Tech</th><th>Amount</th><th>Points</th></tr></thead>
+                  <tbody id="visitsBody"></tbody>
+                </table>
+              </div>
+              <div class="tab-pane" id="tabPromos">
+                <div id="promosBody"></div>
+              </div>
+              <div class="tab-pane" id="tabStats">
+                <div id="statsBody"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-warning" id="btnFlag" onclick="toggleFlag()">Flag</button>
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  let technicians = [];
+  let currentDetailId = null;
+
+  async function init() {
+    technicians = await fetchJSON('/api/technicians');
+    const techSel = document.getElementById('searchTech');
+    const fTech = document.getElementById('fTech');
+    technicians.forEach(t => {
+      techSel.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
+      fTech.insertAdjacentHTML('beforeend', `<option value="${t.id}">${t.name}</option>`);
+    });
+    loadCustomers();
+  }
+
+  async function loadCustomers() {
+    const q = document.getElementById('searchQ').value;
+    const techId = document.getElementById('searchTech').value;
+    const flagged = document.getElementById('searchFlagged').value;
+
+    let url = '/api/customers?';
+    if (q) url += `q=${encodeURIComponent(q)}&`;
+    if (techId) url += `technician_id=${techId}&`;
+    if (flagged) url += `flagged=${flagged}&`;
+
+    const customers = await fetchJSON(url);
+    const tbody = document.querySelector('#customersTable tbody');
+    tbody.innerHTML = customers.length
+      ? customers.map(c => `
+          <tr class="${c.is_flagged ? 'flagged-row' : ''}">
+            <td><a href="#" onclick="viewDetail(${c.id})">${c.name}</a></td>
+            <td>${c.phone}</td>
+            <td>${c.preferred_technician_name || '–'}</td>
+            <td><span class="badge bg-primary">${c.points}</span></td>
+            <td>${formatDate(c.last_visit)}</td>
+            <td>${c.is_flagged
+              ? `<span class="badge bg-warning text-dark" title="${c.flag_reason || ''}"><i class="bi bi-flag-fill"></i> Flagged</span>`
+              : '<span class="badge bg-success">Active</span>'}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1" onclick="openEdit(${c.id})"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer(${c.id})"><i class="bi bi-trash"></i></button>
+            </td>
+          </tr>`).join('')
+      : '<tr><td colspan="7" class="text-center text-muted py-3">No customers found</td></tr>';
+  }
+
+  function openAdd() {
+    document.getElementById('modalTitle').textContent = 'Add Customer';
+    document.getElementById('editId').value = '';
+    ['fName','fPhone','fEmail','fNotes'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fTech').value = '';
+  }
+
+  async function openEdit(id) {
+    const c = await fetchJSON(`/api/customers/${id}`);
+    document.getElementById('modalTitle').textContent = 'Edit Customer';
+    document.getElementById('editId').value = c.id;
+    document.getElementById('fName').value = c.name;
+    document.getElementById('fPhone').value = c.phone;
+    document.getElementById('fEmail').value = c.email || '';
+    document.getElementById('fNotes').value = c.notes || '';
+    document.getElementById('fTech').value = c.preferred_technician_id || '';
+    new bootstrap.Modal(document.getElementById('customerModal')).show();
+  }
+
+  async function saveCustomer() {
+    const id = document.getElementById('editId').value;
+    const body = {
+      name: document.getElementById('fName').value,
+      phone: document.getElementById('fPhone').value,
+      email: document.getElementById('fEmail').value,
+      preferred_technician_id: document.getElementById('fTech').value || null,
+      notes: document.getElementById('fNotes').value
+    };
+    try {
+      if (id) {
+        await fetchJSON(`/api/customers/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        showToast('Customer updated');
+      } else {
+        await fetchJSON('/api/customers', { method: 'POST', body: JSON.stringify(body) });
+        showToast('Customer added');
+      }
+      bootstrap.Modal.getInstance(document.getElementById('customerModal')).hide();
+      loadCustomers();
+    } catch (e) {
+      showToast(e.message, 'danger');
+    }
+  }
+
+  async function deleteCustomer(id) {
+    if (!confirm('Delete this customer?')) return;
+    try {
+      await fetchJSON(`/api/customers/${id}`, { method: 'DELETE' });
+      showToast('Customer deleted', 'warning');
+      loadCustomers();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
+
+  async function viewDetail(id) {
+    currentDetailId = id;
+    const [c, visits, stats, promos] = await Promise.all([
+      fetchJSON(`/api/customers/${id}`),
+      fetchJSON(`/api/customers/${id}/visits`),
+      fetchJSON(`/api/customers/${id}/stats`),
+      fetchJSON(`/api/customers/${id}/promotions`)
+    ]);
+
+    document.getElementById('detailName').textContent = c.name;
+    document.getElementById('detailInfo').innerHTML = `
+      <p class="mb-1"><strong>Phone:</strong> ${c.phone}</p>
+      <p class="mb-1"><strong>Email:</strong> ${c.email || '–'}</p>
+      <p class="mb-1"><strong>Points:</strong> <span class="badge bg-primary">${c.points}</span></p>
+      <p class="mb-1"><strong>Preferred Tech:</strong> ${c.preferred_technician_name || '–'}</p>
+      ${c.notes ? `<p class="mb-1"><strong>Notes:</strong> ${c.notes}</p>` : ''}
+      ${c.is_flagged ? `<div class="alert alert-warning mt-2 py-1 px-2 small"><i class="bi bi-flag-fill me-1"></i>${c.flag_reason || 'Flagged'}</div>` : ''}`;
+
+    document.getElementById('visitsBody').innerHTML = visits.length
+      ? visits.map(v => `<tr>
+          <td>${formatDate(v.checked_in_at)}</td>
+          <td>${v.service_name || '–'}</td>
+          <td>${v.technician_name || '–'}</td>
+          <td>${v.total_amount != null ? '$' + v.total_amount.toFixed(2) : '–'}</td>
+          <td>${v.points_earned}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="5" class="text-muted text-center">No visits</td></tr>';
+
+    document.getElementById('promosBody').innerHTML = promos.length
+      ? promos.map(p => `<div class="card mb-2 border-0 bg-light p-2">
+          <strong>${p.name}</strong><br/>
+          <small class="text-muted">${p.description || ''}</small>
+          ${p.discount_percent ? `<span class="badge bg-success ms-1">${p.discount_percent}% off</span>` : ''}
+          ${p.discount_amount ? `<span class="badge bg-info ms-1">$${p.discount_amount} off</span>` : ''}
+          ${p.used_at ? `<span class="badge bg-secondary ms-1">Used</span>` : '<span class="badge bg-warning text-dark ms-1">Unused</span>'}
+        </div>`).join('')
+      : '<p class="text-muted">No promotions assigned</p>';
+
+    document.getElementById('statsBody').innerHTML = `
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between"><span>Total Visits</span><strong>${stats.total_visits}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>Total Spent</span><strong>$${(stats.total_spent||0).toFixed(2)}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>Points</span><strong>${stats.points}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>Last Visit</span><strong>${formatDate(stats.last_visit)}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span>Favorite Service</span><strong>${stats.favorite_service || '–'}</strong></li>
+      </ul>`;
+
+    const btnFlag = document.getElementById('btnFlag');
+    btnFlag.textContent = c.is_flagged ? 'Remove Flag' : 'Flag Client';
+    btnFlag.className = c.is_flagged ? 'btn btn-secondary' : 'btn btn-warning';
+
+    new bootstrap.Modal(document.getElementById('detailModal')).show();
+  }
+
+  async function toggleFlag() {
+    if (!currentDetailId) return;
+    const c = await fetchJSON(`/api/customers/${currentDetailId}`);
+    if (c.is_flagged) {
+      await fetchJSON(`/api/customers/${currentDetailId}/unflag`, { method: 'POST' });
+      showToast('Flag removed');
+    } else {
+      const reason = prompt('Enter reason for flagging (e.g., Non-compliant, No-show):');
+      if (reason === null) return;
+      await fetchJSON(`/api/customers/${currentDetailId}/flag`, {
+        method: 'POST', body: JSON.stringify({ reason })
+      });
+      showToast('Customer flagged', 'warning');
+    }
+    bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide();
+    loadCustomers();
+  }
+
+  document.getElementById('searchQ').addEventListener('keyup', e => { if (e.key === 'Enter') loadCustomers(); });
+  init();
+</script>
+</body>
+</html>

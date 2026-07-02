@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Virtual Receptionist – Technicians</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    body { background: #f4f6fb; }
+    .sidebar { width: 220px; min-height: 100vh; background: #1a1a2e; color: #eee; }
+    .sidebar a { color: #cdd; text-decoration: none; display: block; padding: 10px 18px; border-radius: 6px; margin: 2px 8px; }
+    .sidebar a:hover, .sidebar a.active { background: #16213e; color: #fff; }
+    .sidebar .brand { font-size: 1.1rem; font-weight: 700; padding: 20px 18px 10px; }
+    .day-badge { font-size: 0.7rem; padding: 2px 6px; }
+  </style>
+</head>
+<body>
+<div class="d-flex">
+  <nav class="sidebar d-flex flex-column py-2">
+    <div class="brand"><i class="bi bi-reception-4 me-2"></i>Receptionist</div>
+    <hr class="border-secondary my-2 mx-3" />
+    <a href="index.html"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a>
+    <a href="customers.html"><i class="bi bi-people me-2"></i>Customers</a>
+    <a href="appointments.html"><i class="bi bi-calendar3 me-2"></i>Appointments</a>
+    <a href="checkin.html"><i class="bi bi-person-check me-2"></i>Check In/Out</a>
+    <a href="services.html"><i class="bi bi-scissors me-2"></i>Services</a>
+    <a href="technicians.html" class="active"><i class="bi bi-person-badge me-2"></i>Technicians</a>
+    <a href="call-log.html"><i class="bi bi-telephone-inbound me-2"></i>Call Log</a>
+  </nav>
+
+  <main class="p-4 flex-fill">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-semibold mb-0"><i class="bi bi-person-badge me-2 text-primary"></i>Technicians</h4>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#techModal" onclick="openAdd()">
+        <i class="bi bi-plus-lg me-1"></i>Add Technician
+      </button>
+    </div>
+
+    <div class="row g-3" id="techGrid"></div>
+  </main>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="techModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="tModalTitle">Add Technician</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="tEditId" />
+        <div class="mb-3">
+          <label class="form-label">Name *</label>
+          <input type="text" id="tName" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Phone</label>
+          <input type="tel" id="tPhone" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Specialties (comma-separated)</label>
+          <input type="text" id="tSpecialties" class="form-control" placeholder="e.g. Manicure, Pedicure, Nail Art" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTechnician()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Availability Modal -->
+<div class="modal fade" id="availModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="availTitle">Edit Availability</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="availBody"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAvailability()">Save Availability</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/app.js"></script>
+<script>
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  let currentAvailTechId = null;
+
+  async function loadTechs() {
+    const techs = await fetchJSON('/api/technicians');
+    const grid = document.getElementById('techGrid');
+    const stats = await fetchJSON('/api/stats/technicians');
+
+    grid.innerHTML = techs.map(t => {
+      const stat = stats.find(s => s.id === t.id) || {};
+      const specialties = JSON.parse(t.specialties || '[]');
+      return `
+        <div class="col-md-4 col-lg-3">
+          <div class="card border-0 shadow-sm h-100 ${t.is_active ? '' : 'opacity-50'}">
+            <div class="card-body">
+              <div class="d-flex align-items-center mb-2">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                     style="width:40px;height:40px;font-size:1.2rem;flex-shrink:0">
+                  ${t.name.charAt(0)}
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-semibold">${t.name}</h6>
+                  <small class="text-muted">${t.phone || 'No phone'}</small>
+                </div>
+              </div>
+              <div class="mb-2">
+                ${specialties.map(s => `<span class="badge bg-light text-dark me-1 mb-1 border">${s}</span>`).join('')}
+              </div>
+              <div class="small text-muted">
+                ${stat.total_visits || 0} visits &nbsp;·&nbsp; $${(stat.total_revenue || 0).toFixed(0)} revenue
+              </div>
+            </div>
+            <div class="card-footer bg-transparent d-flex gap-1 flex-wrap">
+              <button class="btn btn-sm btn-outline-info flex-fill" onclick="editAvailability(${t.id},'${t.name.replace(/'/g, "\\'")}')">
+                <i class="bi bi-clock me-1"></i>Hours
+              </button>
+              <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openEdit(${t.id})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-${t.is_active ? 'warning' : 'success'} flex-fill"
+                onclick="toggleActive(${t.id}, ${t.is_active})">
+                <i class="bi bi-${t.is_active ? 'pause' : 'play'}"></i>
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function openAdd() {
+    document.getElementById('tModalTitle').textContent = 'Add Technician';
+    document.getElementById('tEditId').value = '';
+    document.getElementById('tName').value = '';
+    document.getElementById('tPhone').value = '';
+    document.getElementById('tSpecialties').value = '';
+  }
+
+  async function openEdit(id) {
+    const t = await fetchJSON(`/api/technicians/${id}`);
+    document.getElementById('tModalTitle').textContent = 'Edit Technician';
+    document.getElementById('tEditId').value = t.id;
+    document.getElementById('tName').value = t.name;
+    document.getElementById('tPhone').value = t.phone || '';
+    document.getElementById('tSpecialties').value = JSON.parse(t.specialties || '[]').join(', ');
+    new bootstrap.Modal(document.getElementById('techModal')).show();
+  }
+
+  async function saveTechnician() {
+    const id = document.getElementById('tEditId').value;
+    const specialtiesRaw = document.getElementById('tSpecialties').value;
+    const specialties = specialtiesRaw.split(',').map(s => s.trim()).filter(Boolean);
+    const body = {
+      name: document.getElementById('tName').value,
+      phone: document.getElementById('tPhone').value,
+      specialties
+    };
+    try {
+      if (id) {
+        await fetchJSON(`/api/technicians/${id}`, { method: 'PUT', body: JSON.stringify(body) });
+        showToast('Technician updated');
+      } else {
+        await fetchJSON('/api/technicians', { method: 'POST', body: JSON.stringify(body) });
+        showToast('Technician added');
+      }
+      bootstrap.Modal.getInstance(document.getElementById('techModal')).hide();
+      loadTechs();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
+
+  async function toggleActive(id, current) {
+    await fetchJSON(`/api/technicians/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: !current }) });
+    showToast(current ? 'Technician deactivated' : 'Technician activated');
+    loadTechs();
+  }
+
+  async function editAvailability(techId, techName) {
+    currentAvailTechId = techId;
+    document.getElementById('availTitle').textContent = `Availability – ${techName}`;
+    const slots = await fetchJSON(`/api/technicians/${techId}/availability`);
+
+    const slotMap = {};
+    slots.forEach(s => { slotMap[s.day_of_week] = s; });
+
+    document.getElementById('availBody').innerHTML = `
+      <table class="table">
+        <thead><tr><th>Day</th><th>Active</th><th>Start</th><th>End</th></tr></thead>
+        <tbody>
+          ${DAYS.map((day, i) => {
+            const s = slotMap[i] || {};
+            const active = !!s.start_time;
+            return `<tr>
+              <td>${day}</td>
+              <td><input type="checkbox" class="form-check-input avail-check" data-day="${i}" ${active ? 'checked' : ''} /></td>
+              <td><input type="time" class="form-control form-control-sm avail-start" data-day="${i}" value="${s.start_time || '09:00'}" /></td>
+              <td><input type="time" class="form-control form-control-sm avail-end" data-day="${i}" value="${s.end_time || '18:00'}" /></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+
+    new bootstrap.Modal(document.getElementById('availModal')).show();
+  }
+
+  async function saveAvailability() {
+    const slots = [];
+    document.querySelectorAll('.avail-check').forEach(chk => {
+      if (chk.checked) {
+        const day = chk.dataset.day;
+        slots.push({
+          day_of_week: parseInt(day),
+          start_time: document.querySelector(`.avail-start[data-day="${day}"]`).value,
+          end_time: document.querySelector(`.avail-end[data-day="${day}"]`).value
+        });
+      }
+    });
+    try {
+      await fetchJSON(`/api/technicians/${currentAvailTechId}/availability`, {
+        method: 'PUT', body: JSON.stringify({ slots })
+      });
+      showToast('Availability saved');
+      bootstrap.Modal.getInstance(document.getElementById('availModal')).hide();
+    } catch (e) { showToast(e.message, 'danger'); }
+  }
+
+  loadTechs();
+</script>
+</body>
+</html>

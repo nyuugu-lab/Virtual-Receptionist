@@ -1,0 +1,8 @@
+node_modules/
+.env
+receptionist.db
+receptionist.db-shm
+receptionist.db-wal
+*.db
+coverage/
+.DS_Store
