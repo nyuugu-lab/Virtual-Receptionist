@@ -217,10 +217,15 @@
     searchTimeout = setTimeout(async () => {
       const results = await fetchJSON(`/api/customers?q=${encodeURIComponent(q)}`);
       const list = document.getElementById('aCustomerList');
-      list.innerHTML = results.slice(0, 8).map(c =>
-        `<a href="#" class="list-group-item list-group-item-action" onclick="selectCustomer(${c.id},'${c.name.replace(/'/g, "\\'")}');return false;">
-          ${c.name} <small class="text-muted">${c.phone}</small>
-        </a>`).join('');
+      list.innerHTML = '';
+      results.slice(0, 8).forEach(c => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'list-group-item list-group-item-action';
+        a.innerHTML = `${c.name} <small class="text-muted">${c.phone}</small>`;
+        a.addEventListener('click', e => { e.preventDefault(); selectCustomer(c.id, c.name); });
+        list.appendChild(a);
+      });
     }, 300);
   });
 

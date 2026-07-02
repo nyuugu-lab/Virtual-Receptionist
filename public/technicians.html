@@ -125,20 +125,35 @@
               </div>
             </div>
             <div class="card-footer bg-transparent d-flex gap-1 flex-wrap">
-              <button class="btn btn-sm btn-outline-info flex-fill" onclick="editAvailability(${t.id},'${t.name.replace(/'/g, "\\'")}')">
+              <button class="btn btn-sm btn-outline-info flex-fill js-avail"
+                data-id="${t.id}">
                 <i class="bi bi-clock me-1"></i>Hours
               </button>
-              <button class="btn btn-sm btn-outline-primary flex-fill" onclick="openEdit(${t.id})">
+              <button class="btn btn-sm btn-outline-primary flex-fill js-edit"
+                data-id="${t.id}">
                 <i class="bi bi-pencil"></i>
               </button>
-              <button class="btn btn-sm btn-outline-${t.is_active ? 'warning' : 'success'} flex-fill"
-                onclick="toggleActive(${t.id}, ${t.is_active})">
+              <button class="btn btn-sm btn-outline-${t.is_active ? 'warning' : 'success'} flex-fill js-toggle"
+                data-id="${t.id}" data-active="${t.is_active}">
                 <i class="bi bi-${t.is_active ? 'pause' : 'play'}"></i>
               </button>
             </div>
           </div>
         </div>`;
     }).join('');
+
+    // Attach events via data attributes (avoids string interpolation in onclick)
+    grid.querySelectorAll('.js-avail').forEach(btn => {
+      // Find the matching technician to get the name safely
+      const tech = techs.find(t => t.id === Number(btn.dataset.id));
+      btn.addEventListener('click', () => editAvailability(tech.id, tech.name));
+    });
+    grid.querySelectorAll('.js-edit').forEach(btn => {
+      btn.addEventListener('click', () => openEdit(Number(btn.dataset.id)));
+    });
+    grid.querySelectorAll('.js-toggle').forEach(btn => {
+      btn.addEventListener('click', () => toggleActive(Number(btn.dataset.id), Number(btn.dataset.active)));
+    });
   }
 
   function openAdd() {

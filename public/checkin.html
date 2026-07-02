@@ -176,12 +176,17 @@
     timeout = setTimeout(async () => {
       const results = await fetchJSON(`/api/customers?q=${encodeURIComponent(q)}`);
       const list = document.getElementById('ciList');
-      list.innerHTML = results.slice(0, 8).map(c =>
-        `<a href="#" class="list-group-item list-group-item-action" onclick="selectCustomer(${c.id});return false;">
-          <strong>${c.name}</strong> <span class="text-muted">${c.phone}</span>
+      list.innerHTML = '';
+      results.slice(0, 8).forEach(c => {
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'list-group-item list-group-item-action';
+        a.innerHTML = `<strong>${c.name}</strong> <span class="text-muted">${c.phone}</span>
           ${c.is_flagged ? '<span class="badge bg-warning text-dark ms-1">Flagged</span>' : ''}
-          <span class="badge bg-primary ms-1">${c.points} pts</span>
-        </a>`).join('');
+          <span class="badge bg-primary ms-1">${c.points} pts</span>`;
+        a.addEventListener('click', e => { e.preventDefault(); selectCustomer(c.id); });
+        list.appendChild(a);
+      });
     }, 300);
   });
 
@@ -240,19 +245,26 @@
   async function loadCurrent() {
     const visits = await fetchJSON('/api/visits/current');
     const tbody = document.querySelector('#currentTable tbody');
-    tbody.innerHTML = visits.length
-      ? visits.map(v => `<tr>
+    tbody.innerHTML = '';
+    if (visits.length) {
+      visits.forEach(v => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
           <td>${v.customer_name}<br/><small class="text-muted">${v.customer_phone}</small></td>
           <td>${v.service_name || '–'}</td>
           <td>${v.technician_name || '–'}</td>
           <td>${formatTime(v.checked_in_at)}</td>
-          <td>
-            <button class="btn btn-sm btn-warning" onclick="openCheckout(${v.id},'${v.customer_name.replace(/'/g, "\\'")}')">
-              <i class="bi bi-box-arrow-right me-1"></i>Check Out
-            </button>
-          </td>
-        </tr>`).join('')
-      : '<tr><td colspan="5" class="text-center text-muted py-3">No customers currently checked in</td></tr>';
+          <td></td>`;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-warning';
+        btn.innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>Check Out';
+        btn.addEventListener('click', () => openCheckout(v.id, v.customer_name));
+        tr.querySelector('td:last-child').appendChild(btn);
+        tbody.appendChild(tr);
+      });
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">No customers currently checked in</td></tr>';
+    }
   }
 
   function openCheckout(visitId, name) {
