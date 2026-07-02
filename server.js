@@ -37,12 +37,12 @@ app.post('/kiosk/checkin', (req, res) => {
     checkedInAt: new Date().toISOString(),
     checkedOutAt: null,
     services: [],
-    status: 'pending-services'  // waiting for service selection
+    stylist: null,
+    status: 'pending-services'
   };
   visitors.push(visitor);
   writeVisitors(visitors);
 
-  // Take them to service selection screen
   res.redirect(`/kiosk/services?id=${visitor.id}`);
 });
 
@@ -57,8 +57,25 @@ app.post('/kiosk/services', (req, res) => {
   const visitor = visitors.find(v => v.id === id);
   if (!visitor) return res.redirect('/kiosk?error=missing');
 
-  // services may be a string (one selected) or array (multiple) or undefined
   visitor.services = services ? (Array.isArray(services) ? services : [services]) : [];
+  visitor.status = 'pending-stylist';
+  writeVisitors(visitors);
+
+  res.redirect(`/kiosk/stylist?id=${id}`);
+});
+
+// --- /kiosk/stylist --- Stylist selection screen (Step 3)
+app.get('/kiosk/stylist', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'stylist.html'));
+});
+
+app.post('/kiosk/stylist', (req, res) => {
+  const { id, stylist } = req.body;
+  const visitors = readVisitors();
+  const visitor = visitors.find(v => v.id === id);
+  if (!visitor) return res.redirect('/kiosk?error=missing');
+
+  visitor.stylist = stylist || 'No preference';
   visitor.status = 'waiting';
   writeVisitors(visitors);
 

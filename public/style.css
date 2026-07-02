@@ -90,7 +90,7 @@ body {
 /* --- Dashboard --- */
 .dashboard {
   width: 100%;
-  max-width: 960px;
+  max-width: 1100px;
 }
 
 .dashboard-header {
@@ -210,4 +210,48 @@ td button:hover { background: #c53030; }
 .service-item:has(input:checked) {
   border-color: #4299e1;
   background: #ebf8ff;
+}
+
+/* --- Stylist page --- */
+.stylist-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.stylist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.stylist-item:hover {
+  border-color: #805ad5;
+  background: #faf5ff;
+}
+
+.stylist-item input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #805ad5;
+  cursor: pointer;
+}
+
+.stylist-item:has(input:checked) {
+  border-color: #805ad5;
+  background: #faf5ff;
+}
+
+.stylist-item input[type="radio"]:checked + span {
+  font-weight: 600;
+  color: #553c9a;
 }

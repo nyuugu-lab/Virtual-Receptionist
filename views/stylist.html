@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Choose a Stylist</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="card services-card">
+    <h1>💇‍♀️ Choose a Stylist</h1>
+    <p>Select who you'd like to be served by.</p>
+
+    <form action="/kiosk/stylist" method="POST">
+      <input type="hidden" name="id" id="visitor-id" value="" />
+
+      <div class="stylist-grid">
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="No preference" checked />
+          <span>⭐ No Preference</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Letty" />
+          <span>👩 Letty</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Tee" />
+          <span>👩 Tee</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Helen" />
+          <span>👩 Helen</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Mymy" />
+          <span>👩 Mymy</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Mike" />
+          <span>👨 Mike</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Soffee" />
+          <span>👩 Soffee</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Nancy" />
+          <span>👩 Nancy</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Tina" />
+          <span>👩 Tina</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Tom" />
+          <span>👨 Tom</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Heather" />
+          <span>👩 Heather</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Mary" />
+          <span>👩 Mary</span>
+        </label>
+        <label class="stylist-item">
+          <input type="radio" name="stylist" value="Charlize" />
+          <span>👩 Charlize</span>
+        </label>
+      </div>
+
+      <button type="submit">Confirm Stylist</button>
+    </form>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) document.getElementById('visitor-id').value = id;
+  </script>
+</body>
+</html>
