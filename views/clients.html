@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clients</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-brand">💇 Virtual Receptionist</div>
+    <div class="nav-links">
+      <a href="/dashboard">🖥️ Dashboard</a>
+      <a href="/clients" class="active">👥 Clients</a>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <div class="dashboard-header">
+      <h1>👥 Clients</h1>
+      <div class="header-actions">
+        <input type="text" id="search" placeholder="🔍 Search by name or phone..." oninput="filterClients()" />
+        <div class="export-group">
+          <a href="/export/excel" class="export-btn excel-btn">⬇️ Export Excel</a>
+          <a href="/export/pdf" class="export-btn pdf-btn">⬇️ Export PDF</a>
+        </div>
+      </div>
+    </div>
+
+    <table id="client-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Total Visits</th>
+          <th>Days They Visit</th>
+          <th>Stylists Used</th>
+          <th>Last Visit</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="client-body">
+        <tr><td colspan="8">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let allClients = [];
+
+    function formatDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function renderClients(clients) {
+      const tbody = document.getElementById('client-body');
+      if (!clients.length) {
+        tbody.innerHTML = '<tr><td colspan="8">No clients found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = clients.map(c => `
+        <tr class="${c.inactive ? 'inactive-client' : ''}">
+          <td><a href="/clients/${encodeURIComponent(c.phone)}" class="client-link">${c.name}</a></td>
+          <td>${c.phone}</td>
+          <td>${c.totalVisits}</td>
+          <td>${c.days.length ? c.days.join(', ') : '—'}</td>
+          <td>${c.stylists.length ? c.stylists.join(', ') : '—'}</td>
+          <td>${formatDate(c.lastVisit)}</td>
+          <td><span class="badge ${c.inactive ? 'inactive' : 'active'}">${c.inactive ? 'Inactive' : 'Active'}</span></td>
+          <td>${c.inactive
+            ? `<button class="archive-btn" onclick="archiveClient('${c.phone}')">Archive</button>`
+            : `<a href="/clients/${encodeURIComponent(c.phone)}" class="view-btn">View</a>`}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function filterClients() {
+      const q = document.getElementById('search').value.toLowerCase();
+      renderClients(allClients.filter(c =>
+        c.name.toLowerCase().includes(q) || c.phone.includes(q)
+      ));
+    }
+
+    async function archiveClient(phone) {
+      if (!confirm('Archive this client? They will no longer appear in the list.')) return;
+      await fetch(`/api/clients/${phone}`, { method: 'DELETE' });
+      loadClients();
+    }
+
+    async function loadClients() {
+      const res = await fetch('/api/clients');
+      allClients = await res.json();
+      renderClients(allClients);
+    }
+
+    loadClients();
+  </script>
+</body>
+</html>
