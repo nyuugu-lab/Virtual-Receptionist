@@ -163,3 +163,51 @@ td button {
 }
 
 td button:hover { background: #c53030; }
+
+/* --- Services page --- */
+.services-card {
+  max-width: 600px;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 20px 0;
+  text-align: left;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+.service-item:hover {
+  border-color: #4299e1;
+  background: #ebf8ff;
+}
+
+.service-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #4299e1;
+  cursor: pointer;
+}
+
+.service-item input[type="checkbox"]:checked + span {
+  font-weight: 600;
+  color: #2b6cb0;
+}
+
+.service-item:has(input:checked) {
+  border-color: #4299e1;
+  background: #ebf8ff;
+}

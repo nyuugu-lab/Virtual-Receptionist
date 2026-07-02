@@ -36,9 +36,30 @@ app.post('/kiosk/checkin', (req, res) => {
     phone: phone.trim(),
     checkedInAt: new Date().toISOString(),
     checkedOutAt: null,
-    status: 'waiting'
+    services: [],
+    status: 'pending-services'  // waiting for service selection
   };
   visitors.push(visitor);
+  writeVisitors(visitors);
+
+  // Take them to service selection screen
+  res.redirect(`/kiosk/services?id=${visitor.id}`);
+});
+
+// --- /kiosk/services --- Service selection screen (Step 2)
+app.get('/kiosk/services', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views', 'services.html'));
+});
+
+app.post('/kiosk/services', (req, res) => {
+  const { id, services } = req.body;
+  const visitors = readVisitors();
+  const visitor = visitors.find(v => v.id === id);
+  if (!visitor) return res.redirect('/kiosk?error=missing');
+
+  // services may be a string (one selected) or array (multiple) or undefined
+  visitor.services = services ? (Array.isArray(services) ? services : [services]) : [];
+  visitor.status = 'waiting';
   writeVisitors(visitors);
 
   res.redirect('/kiosk?success=1');
