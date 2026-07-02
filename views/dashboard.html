@@ -3,10 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Receptionist Dashboard</title>
+  <title>Inspire Nails Bar — Dashboard</title>
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
+  <nav class="top-nav">
+    <div class="nav-brand">💅 Inspire Nails Bar</div>
+    <div class="nav-links">
+      <a href="/dashboard" class="active">🖥️ Dashboard</a>
+      <a href="/clients">👥 Clients</a>
+    </div>
+  </nav>
+
   <div class="dashboard">
     <div class="dashboard-header">
       <h1>🖥️ Receptionist Dashboard</h1>
@@ -72,7 +80,7 @@
     }
 
     loadVisitors();
-    setInterval(loadVisitors, 3000); // auto-refresh every 3s
+    setInterval(loadVisitors, 3000);
   </script>
 </body>
 </html>

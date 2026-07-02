@@ -2,13 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Visitor Check-In</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Inspire Nails Bar — Check-In</title>
   <link rel="stylesheet" href="/style.css" />
+
+  <!-- PWA / iPad Home Screen settings -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Inspire Nails Bar" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#2d3748" />
+
+  <!-- App icon for iPad home screen -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
 </head>
-<body>
+<body class="kiosk-body">
   <div class="card">
-    <h1>👋 Welcome!</h1>
+    <h1>👋 Welcome to Inspire Nails Bar!</h1>
     <p>Please sign in below.</p>
 
     <div id="msg"></div>
